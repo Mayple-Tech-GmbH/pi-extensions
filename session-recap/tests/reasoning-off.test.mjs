@@ -105,15 +105,23 @@ const pi = makePi();
 sessionRecap(pi);
 const recap = pi.commands.get("recap").handler;
 
-await recap("", makeCtx(makeModel("openai-codex-responses", "gpt-5.6-luna")));
+await recap("", makeCtx(makeModel("openai-codex-responses", "gpt-6.1-sol")));
+await recap("", makeCtx(makeModel("openai-codex-responses", "gpt-6-luna")));
 await recap("", makeCtx(makeModel("anthropic-messages", "claude-haiku-4-5")));
 
-const codex = calls.find((c) => c.api === "openai-codex-responses");
+const [codex, codexLuna] = calls.filter((c) => c.api === "openai-codex-responses");
 const anthropic = calls.find((c) => c.api === "anthropic-messages");
 
 assert.ok(codex, "codex recap should have issued a request");
 assert.equal(codex.kind, "stream", "codex recaps must use complete(), not completeSimple()");
 assert.equal(codex.options.reasoningEffort, "none", "codex recaps must disable reasoning explicitly");
+assert.ok(codexLuna, "codex luna recap should have issued a request");
+assert.equal(codexLuna.kind, "stream", "codex luna recaps must use complete(), not completeSimple()");
+assert.equal(
+	codexLuna.options.reasoningEffort,
+	"low",
+	"some workspaces reject reasoning none for luna, so luna recaps use low",
+);
 
 assert.ok(anthropic, "anthropic recap should have issued a request");
 assert.equal(anthropic.kind, "streamSimple", "other apis keep using completeSimple()");

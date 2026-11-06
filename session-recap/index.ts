@@ -49,6 +49,14 @@ const POST_TURN_DEBOUNCE_MS = 3000;
 // so inherits the server-side default. Those models go through `complete` with
 // an explicit `reasoningEffort: "none"` instead.
 const NEEDS_EXPLICIT_REASONING_OFF = new Set(["openai-codex-responses"]);
+// Some ChatGPT workspaces reject `reasoningEffort: "none"` for Luna models
+// ("This reasoning level isn't available for the selected model in your
+// workspace"), so Luna recaps use the lowest level those workspaces accept.
+const LUNA_MODEL_ID = /(?:^|\/)gpt-[\d.]+-luna(?:$|[@:])/;
+
+function codexRecapReasoningEffort(model: Model): "none" | "low" {
+	return LUNA_MODEL_ID.test(model.id) ? "low" : "none";
+}
 
 const RECENT_MESSAGE_WINDOW = 30;
 const MIN_ASSISTANT_WORDS = 30;
@@ -247,7 +255,7 @@ async function generateRecap(
 	try {
 		// Recaps never need reasoning; skipping it keeps each away-timer fire cheap.
 		response = NEEDS_EXPLICIT_REASONING_OFF.has(model.api)
-			? await complete(requestModel, context, { ...options, reasoningEffort: "none" })
+			? await complete(requestModel, context, { ...options, reasoningEffort: codexRecapReasoningEffort(model) })
 			: await completeSimple(requestModel, context, options);
 	} catch (err) {
 		// completeSimple cannot route custom handlers registered only inside Pi.
